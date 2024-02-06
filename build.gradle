@@ -1,0 +1,61 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.2.2'
+	id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '21'
+}
+
+repositories {
+	mavenCentral()
+}
+
+configurations {
+	runtimeAgent
+}
+
+ext {
+	tomcatVersion = '10.1.15'
+}
+
+dependencyManagement {
+	dependencies {
+		dependency "org.apache.tomcat.embed:tomcat-embed-core:${tomcatVersion}"
+		dependency "org.apache.tomcat.embed:tomcat-embed-el:${tomcatVersion}"
+		dependency "org.apache.tomcat.embed:tomcat-embed-websocket:${tomcatVersion}"
+	}
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	runtimeAgent "org.springframework:spring-instrument:6.0.14"
+	runtimeAgent "org.aspectj:aspectjweaver:1.9.21"
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+test {
+	testLogging {
+		events "PASSED", "SKIPPED", "FAILED"
+		exceptionFormat "full"
+		showStandardStreams = true
+	}
+}
+
+test.doFirst {
+	configurations.runtimeAgent.each {
+		File jarFile ->
+			jvmArgs "-javaagent:${jarFile.absolutePath}"
+	}
+	jvmArgs "--add-opens=java.base/java.lang=ALL-UNNAMED"
+}
